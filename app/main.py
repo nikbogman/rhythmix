@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, HttpUrl, field_validator
 from contextlib import asynccontextmanager
@@ -36,8 +37,13 @@ class TrackRequest(BaseModel):
         return v
 
 
+@app.get("/")
+async def get_root():
+    return RedirectResponse(url="/static/index.html")
+
+
 @app.post("/")
-async def root(request: TrackRequest):
+async def post_root(request: TrackRequest):
     resolved_track = await sc.resolve_track(track_url=request.url)
     track_id = resolved_track.get("id")
     download_url = await sc.get_download_url(track_id)
@@ -45,7 +51,3 @@ async def root(request: TrackRequest):
     audio = download_audio_segment(download_url)
     data = analyze_audio(audio)
     return data
-
-
-# soundcloud_url = "https://soundcloud.com/centrecourt/giraffe"
-# soundcloud_url = "https://soundcloud.com/valence-music/skrillex-voltage-valence-flip"

@@ -56,13 +56,9 @@ def download_audio_segment(url: str, duration_sec: int = 60):
 
 def analyze_audio(audio: np.ndarray):
     key, scale, strength = es.KeyExtractor()(audio)
-    bpm, beats, beats_confidence, _, _ = es.RhythmExtractor2013(method="multifeature")(
-        audio
-    )
+    bpm, _, _, _, _ = es.RhythmExtractor2013(method="multifeature")(audio)
     return {
         "bpm": bpm,
-        "beats": beats,
-        "beats_confidence": beats_confidence,
         "key": key,
         "scale": scale,
         "camelot_key": key_to_camelot(key, scale),
