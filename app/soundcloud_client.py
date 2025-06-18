@@ -106,24 +106,7 @@ class SoundCloudClient:
         )
         return response.json()
 
-    async def get_download_url(self, track_id: str):
-        track_urn = f"soundcloud:tracks:{track_id}"
-        track = await self.get_track(track_urn)
-
-        stream_url = None
-
-        protocol = "progressive"
-        mime_type = "audio/mpeg"
-
-        for t in track["media"]["transcodings"]:
-            if t.get("format", {}).get("protocol") == protocol and mime_type in t.get(
-                "format", {}
-            ).get("mime_type", ""):
-                stream_url = t.get("url")
-
-        if not stream_url:
-            raise Exception("No suitable progressive transcoding found.")
-
+    async def get_download_url(self, stream_url: str):
         response = await self.get(
             url=stream_url,
             params={"client_id": self.client_id},

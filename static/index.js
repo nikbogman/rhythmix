@@ -1,27 +1,27 @@
-class TrackCache {
+class History {
     constructor() {
-        this.trackIds = [];
+        this.history = [];
     }
 
-    getTrackIds() {
-        if (this.trackIds.length === 0) {
-            const stored = localStorage.getItem('trackIds');
+    get() {
+        if (this.history.length === 0) {
+            const stored = localStorage.getItem('history');
             if (stored) {
                 try {
-                    this.trackIds = JSON.parse(stored);
+                    this.history = JSON.parse(stored);
                 } catch {
-                    this.trackIds = [];
+                    this.history = [];
                 }
             }
         }
-        return this.trackIds;
+        return this.history;
     }
 
-    addTrackId(trackId) {
-        if (this.trackIds.indexOf(trackId) !== -1) {
-            this.trackIds.splice(index, 1);
+    push(key) {
+        if (this.history.indexOf(key) !== -1) {
+            this.history.splice(index, 1);
         }
-        this.trackIds.push(trackId);
-        localStorage.setItem('trackIds', JSON.stringify(this.trackIds));
+        this.history.push(key);
+        localStorage.setItem('history', JSON.stringify(this.history));
     }
 }

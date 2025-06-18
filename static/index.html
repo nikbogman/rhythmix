@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,21 +9,51 @@
     <title>Rhythmix</title>
     <style>
         #invalid-track-input {
-            display: none;      
+            display: none;
         }
 
+        .img-container {
+            display: flex;
+            justify-content: start;
+            align-items: start;
+        }
+
+        img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        article {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr;
+        }
+
+        .artist {
+            font-weight: 500;
+        }
+
+        .title {
+            font-weight:700;
+            color: rgb(153, 153, 153)
+        }
+
+        .duration {
+            font-weight: 100;
+        }
     </style>
 </head>
 
 <body>
     <main class="container">
         <h1>Rhythmix</h1>
-        
+
         <div>
             <form onsubmit="handleSubmit(event)">
-                <input id="track-input" type="text"  placeholder="Enter SoundCloud URL" aria-describedby="invalid-track-input"/>
+                <input id="track-input" type="text" placeholder="Enter SoundCloud URL" aria-label="Please wait…"
+                    aria-describedby="invalid-track-input" />
                 <small id="invalid-track-input">
-                    Please provide a valid SoundCloud track URL!          
+                    Please provide a valid SoundCloud track URL!
                 </small>
 
                 <input id="track-submit" type="submit" value="Submit">
@@ -34,25 +65,96 @@
 
     <script src="./index.js"></script>
     <script>
-        // aria-busy="true" aria-label="Please wait…" on the button when loading
-        // place the button and the input next to eachother
+        const regex = /^https:\/\/soundcloud\.com\/([^/]+)\/([^/]+)\/?$/;
 
         const input = document.getElementById('track-input');
         const invalid = document.getElementById('invalid-track-input');
-        const btn = document.getElementById('track-submit');
+        const button = document.getElementById('track-submit');
         const list = document.getElementById('tracks');
 
-        const cache = new TrackCache();
-        
-        function loadTracksFromCache() {
-            const trackIds = cache.getTrackIds();
-            list.innerHTML = ''; 
+        const history = new History();
 
-            for(const id of trackIds) {
-                const li = document.createElement('article');
-                li.textContent = id;
-                list.appendChild(li);
-            }
+        // fix duration
+        function createSongComponent({ artwork_url, artist_display, title, full_duration, bpm, key, camelot_key }) {
+            const article = document.createElement("article");
+
+            const imgContainer = document.createElement("div");
+            imgContainer.className = "img-container";
+
+            const img = document.createElement("img");
+            img.src = artwork_url;
+            img.width = 150;
+            img.height = 150;
+            imgContainer.appendChild(img);
+            article.appendChild(imgContainer);
+
+            const infoDiv = document.createElement("div");
+
+            const artistP = document.createElement("p");
+            artistP.className = "artist";
+            artistP.textContent = artist_display;
+
+            const titleP = document.createElement("p");
+            titleP.className = "title";
+            titleP.textContent = title;
+
+            const durationP = document.createElement("p");
+            durationP.className = "duration";
+            durationP.textContent = full_duration;
+
+            infoDiv.append(artistP, titleP, durationP);
+            article.appendChild(infoDiv);
+
+            const bpmDiv = document.createElement("div");
+            const bpmP = document.createElement("p");
+            bpmP.textContent = `${bpm.toFixed(1)} BPM`;
+            bpmDiv.appendChild(bpmP);
+            article.appendChild(bpmDiv);
+
+            const keyDiv = document.createElement("div");
+
+            const keyP = document.createElement("p");
+            keyP.textContent = key;
+
+            const camelotP = document.createElement("p");
+            camelotP.textContent = camelot_key;
+
+            keyDiv.append(keyP, camelotP);
+            article.appendChild(keyDiv);
+
+            return article;
+        }
+
+        async function loadTracksFromHistory() {
+            const keys = history.get();
+            list.innerHTML = '';
+
+            const promises = keys.map(async (key) => {
+                const response = await fetch(`/track/${key}`, { method: 'GET' });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch track ${key}`);
+                }
+
+                const data = await response.json();
+                data.full_duration = formatDuration(data.full_duration)
+                const element = createSongComponent(data);
+                list.appendChild(element);
+            });
+
+            await Promise.all(promises);
+
+
+            // sort by the idx of the key
+        }
+
+        function formatDuration(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const formatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            console.log(formatted)
+            return formatted;
         }
 
 
@@ -60,19 +162,32 @@
             event.preventDefault();
             const url = input.value.trim();
 
-            if(!url) {
+            if (!url) {
                 input.setAttribute("aria-invalid", "true");
                 invalid.style.display = 'block';
+                return;
+            }
+
+
+            const match = url.match(regex);
+            if (!match) {
+                input.setAttribute("aria-invalid", "true");
+                invalid.style.display = 'block';
+                return;
             }
 
             input.removeAttribute("aria-invalid");
             invalid.style.display = 'none';
-            // async fetch from the api
+
+            const [, artist, trackName] = match;
+            const key = `${artist}/${trackName}`;
+
+            button.setAttribute("aria-busy", "true");
+            button.disabled = true;
+
             try {
-                const response = await fetch('/', {
+                const response = await fetch(`/track/${key}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
                 });
 
                 if (!response.ok) {
@@ -80,21 +195,24 @@
                 }
 
                 const data = await response.json();
-                
-                const li = document.createElement('article');
-                li.textContent = url;
-                list.appendChild(li);
-                input.value = '';
 
-                cache.addTrackId(url);
-                
-                console.log(data);
+                data.full_duration = formatDuration(data.full_duration)
+                list.appendChild(createSongComponent(data));
+
             } catch (err) {
                 console.error(err);
+            } finally {
+                button.setAttribute("aria-busy", "false");
+                button.disabled = false;
             }
+
+            input.value = '';
+
+            history.push(key);
         }
 
-        loadTracksFromCache();
+        loadTracksFromHistory();
     </script>
 </body>
+
 </html>
