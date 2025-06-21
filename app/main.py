@@ -9,8 +9,16 @@ from .audio_analysis import *
 from .storage import *
 
 from datetime import datetime
+from secure import Secure
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 
 sc = SoundCloudClient()
+
+limiter = Limiter(key_func=get_remote_address)
+secure_headers = Secure.with_default_headers()
 
 
 @asynccontextmanager
@@ -21,6 +29,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    await secure_headers.set_headers_async(response)
+    return response
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -30,6 +49,7 @@ async def get_root():
 
 
 @app.get("/track/{artist}/{track_name}")
+@limiter.limit("20/minute")
 def get_track(artist: str, track_name: str):
     track_path = f"{artist}/{track_name}"
     s3_key = f"{track_path}.json"
@@ -45,6 +65,7 @@ mime_type = "audio/mpeg"
 
 
 @app.post("/track/{artist}/{track_name}")
+@limiter.limit("10/minute")
 async def analyze_track(artist: str, track_name: str):
     track_path = f"{artist}/{track_name}"
     track_url = f"https://soundcloud.com/{track_path}"
