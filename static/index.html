@@ -7,41 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.orange.min.css">
     <meta name="color-scheme" content="light dark">
     <title>Rhythmix</title>
-    <style>
-        #invalid-track-input {
-            display: none;
-        }
-
-        .img-container {
-            display: flex;
-            justify-content: start;
-            align-items: start;
-        }
-
-        img {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
-        }
-
-        article {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr;
-        }
-
-        .artist {
-            font-weight: 500;
-        }
-
-        .title {
-            font-weight:700;
-            color: rgb(153, 153, 153)
-        }
-
-        .duration {
-            font-weight: 100;
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 
 <body>
@@ -50,9 +16,15 @@
 
         <div>
             <form onsubmit="handleSubmit(event)">
-                <input id="track-input" type="text" placeholder="Enter SoundCloud URL" aria-label="Please wait…"
-                    aria-describedby="invalid-track-input" />
-                <small id="invalid-track-input">
+                <input 
+                    id="track-input" 
+                    type="text" 
+                    placeholder="Enter SoundCloud URL"
+                    area-busy="false"
+                    aria-label="Please wait…"
+                    aria-describedby="track-input-feedback" 
+                />
+                <small id="track-input-feedback">
                     Please provide a valid SoundCloud track URL!
                 </small>
 
@@ -64,155 +36,7 @@
     </main>
 
     <script src="./index.js"></script>
-    <script>
-        const regex = /^https:\/\/soundcloud\.com\/([^/]+)\/([^/]+)\/?$/;
-
-        const input = document.getElementById('track-input');
-        const invalid = document.getElementById('invalid-track-input');
-        const button = document.getElementById('track-submit');
-        const list = document.getElementById('tracks');
-
-        const history = new History();
-
-        // fix duration
-        function createSongComponent({ artwork_url, artist_display, title, full_duration, bpm, key, camelot_key }) {
-            const article = document.createElement("article");
-
-            const imgContainer = document.createElement("div");
-            imgContainer.className = "img-container";
-
-            const img = document.createElement("img");
-            img.src = artwork_url;
-            img.width = 150;
-            img.height = 150;
-            imgContainer.appendChild(img);
-            article.appendChild(imgContainer);
-
-            const infoDiv = document.createElement("div");
-
-            const artistP = document.createElement("p");
-            artistP.className = "artist";
-            artistP.textContent = artist_display;
-
-            const titleP = document.createElement("p");
-            titleP.className = "title";
-            titleP.textContent = title;
-
-            const durationP = document.createElement("p");
-            durationP.className = "duration";
-            durationP.textContent = full_duration;
-
-            infoDiv.append(artistP, titleP, durationP);
-            article.appendChild(infoDiv);
-
-            const bpmDiv = document.createElement("div");
-            const bpmP = document.createElement("p");
-            bpmP.textContent = `${bpm.toFixed(1)} BPM`;
-            bpmDiv.appendChild(bpmP);
-            article.appendChild(bpmDiv);
-
-            const keyDiv = document.createElement("div");
-
-            const keyP = document.createElement("p");
-            keyP.textContent = key;
-
-            const camelotP = document.createElement("p");
-            camelotP.textContent = camelot_key;
-
-            keyDiv.append(keyP, camelotP);
-            article.appendChild(keyDiv);
-
-            return article;
-        }
-
-        async function loadTracksFromHistory() {
-            const keys = history.get();
-            list.innerHTML = '';
-
-            const promises = keys.map(async (key) => {
-                const response = await fetch(`/track/${key}`, { method: 'GET' });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch track ${key}`);
-                }
-
-                const data = await response.json();
-                data.full_duration = formatDuration(data.full_duration)
-                const element = createSongComponent(data);
-                list.appendChild(element);
-            });
-
-            await Promise.all(promises);
-
-
-            // sort by the idx of the key
-        }
-
-        function formatDuration(ms) {
-            const totalSeconds = Math.floor(ms / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            const formatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            console.log(formatted)
-            return formatted;
-        }
-
-
-        async function handleSubmit(event) {
-            event.preventDefault();
-            const url = input.value.trim();
-
-            if (!url) {
-                input.setAttribute("aria-invalid", "true");
-                invalid.style.display = 'block';
-                return;
-            }
-
-
-            const match = url.match(regex);
-            if (!match) {
-                input.setAttribute("aria-invalid", "true");
-                invalid.style.display = 'block';
-                return;
-            }
-
-            input.removeAttribute("aria-invalid");
-            invalid.style.display = 'none';
-
-            const [, artist, trackName] = match;
-            const key = `${artist}/${trackName}`;
-
-            button.setAttribute("aria-busy", "true");
-            button.disabled = true;
-
-            try {
-                const response = await fetch(`/track/${key}`, {
-                    method: 'POST',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const data = await response.json();
-
-                data.full_duration = formatDuration(data.full_duration)
-                list.appendChild(createSongComponent(data));
-
-            } catch (err) {
-                console.error(err);
-            } finally {
-                button.setAttribute("aria-busy", "false");
-                button.disabled = false;
-            }
-
-            input.value = '';
-
-            history.push(key);
-        }
-
-        loadTracksFromHistory();
-    </script>
+    
 </body>
 
 </html>

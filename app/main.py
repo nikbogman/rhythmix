@@ -40,6 +40,10 @@ def get_track(artist: str, track_name: str):
         raise HTTPException(status_code=404, detail="Track not found")
 
 
+protocols = ["progressive", "hls"]
+mime_type = "audio/mpeg"
+
+
 @app.post("/track/{artist}/{track_name}")
 async def analyze_track(artist: str, track_name: str):
     track_path = f"{artist}/{track_name}"
@@ -53,18 +57,16 @@ async def analyze_track(artist: str, track_name: str):
         pass
 
     track = await sc.resolve_track(track_url)
+
     track_id = track.get("id")
 
     stream_url = None
 
-    protocol = "progressive"
-    mime_type = "audio/mpeg"
-
     for t in track["media"]["transcodings"]:
-        if t.get("format", {}).get("protocol") == protocol and mime_type in t.get(
-            "format", {}
-        ).get("mime_type", ""):
+        fmt = t.get("format", {})
+        if fmt.get("protocol") in protocols and fmt.get("mime_type", "") == mime_type:
             stream_url = t.get("url")
+            break
 
     if not stream_url:
         raise HTTPException(status_code=500, detail="No suitable stream url found.")
@@ -74,6 +76,10 @@ async def analyze_track(artist: str, track_name: str):
     audio = download_audio_segment(download_url)
     audio_data = analyze_audio(audio)
 
+    artist_display = track.get("publisher_metadata").get("artist")
+    if not artist_display:
+        artist_display = track.get("user").get("username")
+
     data = {
         "id": track_id,
         "slug": track_name,
@@ -82,7 +88,7 @@ async def analyze_track(artist: str, track_name: str):
         "full_duration": track["full_duration"],
         "title": track["title"],
         "genre": track["genre"],
-        "artist_display": track["publisher_metadata"]["artist"],
+        "artist_display": artist_display,
         "created_at": str(datetime.now()),
     } | audio_data
 

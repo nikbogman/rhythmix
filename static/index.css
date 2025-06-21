@@ -1,0 +1,33 @@
+#track-input-feedback {
+    display: none;
+}
+
+.img-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.img-container img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+}
+
+article {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 1fr;
+}
+
+#artist {
+    font-weight: 500;
+}
+
+#title {
+    font-weight: 700;
+    color: rgb(153, 153, 153)
+}
+
+#duration {
+    font-weight: 100;
+}
