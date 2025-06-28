@@ -1,5 +1,4 @@
 import asyncio
-import requests
 import re
 from typing import Any, Dict, Optional
 import httpx
@@ -49,7 +48,7 @@ class SoundCloudClient:
             raise ValueError("Could not find script URLs")
 
         for script_url in urls:
-            script_resp = requests.get(script_url)
+            script_resp = await self.client.get(url=script_url)
             script_text = script_resp.text
             match = re.search(r'[{,]client_id:"(\w+)"', script_text)
             if match:

@@ -102,6 +102,19 @@ function parseData(track) {
 
 async function fetchTrack(trackKey) {
     const response = await fetch(`/track/${trackKey}`, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch track ${trackKey}`);
+    }
+
+    const data = await response.json();
+    return parseData(data);
+}
+
+async function analyzeTrack(trackKey) {
+    const response = await fetch(`/track/${trackKey}`, {
         method: 'POST',
     });
 
@@ -134,7 +147,7 @@ async function handleSubmit(event) {
     submit.disabled = true;
 
     try {
-        const track = await fetchTrack(trackKey);
+        const track = await analyzeTrack(trackKey);
         tracks.appendChild(createTrackComponent(track));
     } catch (err) {
         console.error(err);
