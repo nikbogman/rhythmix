@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 
 s3 = boto3.resource(
     "s3",
-    endpoint_url="https://03cb0a2284e46ed7c20782ac3218cf4f.r2.cloudflarestorage.com",
+    endpoint_url="",
 )
 
 bucket_name = "rhythmix"
@@ -18,7 +18,6 @@ def get_object(key):
         obj.load()
         body = obj.get()["Body"].read().decode("utf-8")
         return json.loads(body)
-
     except ClientError as e:
         if e.response["Error"]["Code"] == "404":
             raise FileNotFoundError(

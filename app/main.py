@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from .soundcloud_client import SoundCloudClient
-from .storage_client import *
+from .storage.google_storage_client import *
 from .audio_analysis import *
 
 from datetime import datetime
