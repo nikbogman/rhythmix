@@ -1,6 +1,5 @@
 from typing import Literal
-import ffmpeg
-import numpy as np
+from numpy import np
 import essentia.standard as es
 
 camelot_map = {
@@ -45,22 +44,9 @@ def key_to_camelot(key: str, scale: Literal["minor", "major"]):
     return camelot_map.get((key, scale), "Unknown")
 
 
-def download_audio_segment(url: str, duration_sec: int = 60):
-    out, _ = (
-        ffmpeg.input(url, t=duration_sec)
-        .output("pipe:", format="f32le", acodec="pcm_f32le", ac=1, ar=44100)
-        .run(capture_stdout=True, capture_stderr=True)
-    )
-    return np.frombuffer(out, dtype=np.float32)
-
-
-def analyze_audio(audio: np.ndarray):
-    key, scale, strength = es.KeyExtractor()(audio)
+def analyze_audio(audio_bytes: bytes):
+    audio = np.frombuffer(audio_bytes, dtype=np.float32)
+    key, scale = es.KeyExtractor()(audio)
     bpm, _, _, _, _ = es.RhythmExtractor2013(method="multifeature")(audio)
-    return {
-        "bpm": bpm,
-        "key": key,
-        "scale": scale,
-        "camelot_key": key_to_camelot(key, scale),
-        "strength": strength,
-    }
+
+    return dict(bpm=bpm, key=key, chamelot_key=key_to_camelot(key, scale), scale=scale)

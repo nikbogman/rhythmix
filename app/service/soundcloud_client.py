@@ -112,11 +112,7 @@ class SoundCloudClient:
             retries=5,
             backoff=200,
         )
-        download_url = response.json().get("url")
-        if not download_url:
-            raise Exception("No suitable progressive transcoding found.")
-
-        return download_url
+        return response.json().get("url")
 
     async def close(self):
         await self.client.aclose()
