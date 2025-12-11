@@ -1,11 +1,11 @@
-from dataclasses import dataclass
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from app.dependencies import get_sc
-from app.service.rate_limitter import limiter
-from app.service.soundcloud_client import SoundCloudClient
+from fastapi import APIRouter, HTTPException, Request, Response
 
-router = APIRouter("/soundcloud")
+from app.api.dependencies import SoundCloudClientDependancy
+from app.service.soundcloud import SoundCloudClient
 
+from ..rate_limiter import limiter
+
+router = APIRouter(prefix="/soundcloud")
 
 protocols = ["progressive", "hls"]
 mime_type = "audio/mpeg"
@@ -18,12 +18,12 @@ async def analyze_track(
     track_name: str,
     request: Request,
     response: Response,
-    sc: SoundCloudClient = Depends(get_sc),
+    soundcloud_client=SoundCloudClientDependancy,
 ):
-    track_path = f"{artist}/{track_name}"
 
+    track_path = f"{artist}/{track_name}"
     track_url = f"https://soundcloud.com/{track_path}"
-    track = await sc.resolve_track(track_url)
+    track = await soundcloud_client.resolve_track(track_url)
 
     stream_url = None
     for t in track["media"]["transcodings"]:
@@ -35,7 +35,7 @@ async def analyze_track(
     if not stream_url:
         raise HTTPException(status_code=500, detail="No suitable stream url found.")
 
-    download_url = await sc.get_download_url(stream_url)
+    download_url = await soundcloud_client.get_download_url(stream_url)
     if not download_url:
         raise HTTPException(
             status_code=500, detail="No suitable progressive transcoding found."

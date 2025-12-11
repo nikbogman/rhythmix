@@ -1,15 +1,19 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from celery.result import AsyncResult
-from app.celery.tasks import celery_app, analyze_audio_task
+from app.api.dependencies import AudioCacheDependancy
+from app.service.audio_cache import AudioCache
+from app.tasks import celery_app, analyze_audio_task
 
-router = APIRouter()
+router = APIRouter(prefix="/audio")
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.post("/audio")
-async def upload_audio(file: UploadFile = File(...)):
+async def upload_audio(
+    file: UploadFile = File(...), audio_cache: AudioCache = AudioCacheDependancy
+):
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(
@@ -17,8 +21,12 @@ async def upload_audio(file: UploadFile = File(...)):
             detail=f"File too large. Max size is {MAX_FILE_SIZE / 1024 / 1024} MB",
         )
 
+    cache_key = audio_cache.set(contents)
+    # pass cache_key to celery task for processing
+    # then delete from cache after processing
+
     task = analyze_audio_task.delay(contents)
-    return {"task_id": task.id}
+    return dict(task_id=task.id, cache_key=cache_key)
 
 
 @router.get("/audio/{task_id}")

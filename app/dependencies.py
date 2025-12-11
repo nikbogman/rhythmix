@@ -1,10 +1,10 @@
-from fastapi import Request
-from app.service.soundcloud_client import SoundCloudClient
+import redis
+from functools import cache
+from app.config import Settings
 
 
-def get_sc(request: Request) -> SoundCloudClient:
-    return request.app.state.sc
-
-
-def get_s3(request: Request):
-    return request.app.state.s3
+@cache
+def get_redis_client(config: Settings) -> redis.Redis:
+    return redis.Redis(
+        host=config.redis_host, port=config.redis_port, db=config.redis_db
+    )
