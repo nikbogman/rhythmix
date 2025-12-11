@@ -1,50 +1,49 @@
 import asyncio
 import re
-
-from app.service.http import HttpClient
+import httpx
 
 WEB_URL = "https://soundcloud.com/"
 MOBILE_URL = "https://m.soundcloud.com/"
 
 
 class SoundCloudClientIdProvider:
-    def __init__(self, http: HttpClient):
-        self.http = http
-        self._client_id: str | None = None
+    _client_id: str | None
+
+    def __init__(self, http_client: httpx.AsyncClient):
+        self.http_client = http_client
+        self._client_id = None
         self._lock = asyncio.Lock()
 
     async def get(self) -> str:
-        if self._client_id:
-            return self._client_id
-        return await self.refetch()
+        if not self._client_id:
+            return await self.refetch()
+
+        return self._client_id
 
     async def refetch(self) -> str:
         async with self._lock:
-            if self._client_id:
-                return self._client_id
+            if not self._client_id:
+                self._client_id = await self._fetch_client_id()
 
-            client_id = await self._fetch_client_id()
-            self._client_id = client_id
-            return client_id
+            return self._client_id
+
+    async def invalidate(self):
+        self._client_id = None
 
     async def _fetch_client_id(self) -> str:
         try:
-            client_id = await self._fetch_client_id_web()
+            return await self._fetch_client_id_web()
         except Exception as web_error:
-            print(f"Web fetch error: {web_error}")
             try:
-                client_id = await self._fetch_client_id_mobile()
+                return await self._fetch_client_id_mobile()
             except Exception as mobile_error:
-                print(f"Mobile fetch error: {mobile_error}")
                 raise RuntimeError(
                     f"Could not find client ID. Provide one manually.\n"
                     f"Web error: {web_error}\nMobile error: {mobile_error}"
                 )
 
-        return client_id
-
     async def _fetch_client_id_web(self) -> str:
-        response = await self.http.get(url=WEB_URL)
+        response = await self.http_client.get(url=WEB_URL)
         text = response.text
         if not text or not isinstance(text, str):
             raise ValueError("Could not find client ID")
@@ -54,7 +53,7 @@ class SoundCloudClientIdProvider:
             raise ValueError("Could not find script URLs")
 
         for script_url in urls:
-            script_resp = await self.http.get(url=script_url)
+            script_resp = await self.http_client.get(url=script_url)
             script_text = script_resp.text
             match = re.search(r'[{,]client_id:"(\w+)"', script_text)
             if match:
@@ -70,12 +69,10 @@ class SoundCloudClientIdProvider:
                 "Mobile/15E148 Safari/604.1"
             )
         }
-        response = await self.http.get(url=MOBILE_URL, headers=headers)
+        response = await self.http_client.get(url=MOBILE_URL, headers=headers)
         text = response.text
         match = re.search(r'"clientId":"(\w+?)"', text)
         if match:
             return match.group(1)
-        raise ValueError("Could not find client ID")
 
-    async def invalidate(self):
-        self._client_id = None
+        raise ValueError("Could not find client ID")

@@ -1,7 +1,5 @@
-from asyncio import protocols
-import mimetypes
-from app.service.soundcloud.api import SoundCloudAPI
-from app.service.soundcloud.track import SoundCloudTrack
+from service.soundcloud.api import SoundCloudAPI
+from service.soundcloud.track import SoundCloudTrack
 
 PROTOCOLS = ["progressive", "hls"]
 MIMETYPE = "audio/mpeg"
@@ -20,7 +18,7 @@ class SoundCloudService:
         self.api = api
 
     async def get_track(self, track_artist: str, track_name: str):
-        track = await self.resolve_track(
+        track = await self.api.resolve_track(
             f"https://soundcloud.com/{track_artist}/{track_name}"
         )
 
@@ -28,11 +26,9 @@ class SoundCloudService:
         if not stream_url:
             raise ValueError("No suitable stream url found.")
 
-        download_url = await self.get_download_url(stream_url)
+        download_url = await self.api.get_download_url(stream_url)
         if not download_url:
-            raise ValueError(
-                status_code=500, detail="No suitable progressive transcoding found."
-            )
+            raise ValueError("No suitable progressive transcoding found.")
 
         artist_display = track.get("publisher_metadata").get("artist")
         if not artist_display:

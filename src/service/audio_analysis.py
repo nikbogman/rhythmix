@@ -1,3 +1,7 @@
+import numpy as np
+import essentia.standard as es
+from typing import Literal
+
 _base_camelot_map = {
     ("C", "major"): "8B",
     ("C#", "major"): "3B",
@@ -39,10 +43,7 @@ def key_to_camelot(key: str, scale: Literal["minor", "major"]) -> str:
     return _base_camelot_map.get((key_normalized, scale), "Unknown")
 
 
-@celery_app.task
-def analyze_audio_task(audio_bytes: bytes):
-    # load audio from redis
-
+def analyse_audio(audio_bytes: bytes):
     audio = np.frombuffer(audio_bytes, dtype=np.float32)
     key, scale = es.KeyExtractor()(audio)
     bpm, _, _, _, _ = es.RhythmExtractor2013(method="multifeature")(audio)
