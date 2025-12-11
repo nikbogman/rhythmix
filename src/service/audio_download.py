@@ -11,7 +11,3 @@ def download_audio(url: str) -> bytes:
         .run(capture_stdout=True, capture_stderr=True)
     )
     return out
-
-
-async def download_audio_async(url: str) -> bytes:
-    return await asyncio.to_thread(download_audio, url)

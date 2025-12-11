@@ -8,3 +8,5 @@ The goal is to make it easy for DJs to quickly analyze tracks right from the web
 uvicorn app.main:app --reload
 
 ```
+
+celery -A worker.celery_app worker --loglevel=info

@@ -1,12 +1,12 @@
 from fastapi import Request
 
-from service.audio_cache import AudioCache
-from service.soundcloud import SoundCloudService
+from src.service.audio_cache import AudioCache
+from src.service.soundcloud import SoundCloudService
 
 
 def get_soundcloud_service(request: Request) -> SoundCloudService:
-    return request.state.soundcloud_service
+    return request.app.state.soundcloud_service
 
 
 def get_audio_cache(request: Request) -> AudioCache:
-    return request.state.audio_cache
+    return request.app.state.audio_cache

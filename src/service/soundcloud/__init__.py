@@ -1,5 +1,5 @@
-from service.soundcloud.api import SoundCloudAPI
-from service.soundcloud.track import SoundCloudTrack
+from src.service.soundcloud.api import SoundCloudAPI
+from src.service.soundcloud.track import SoundCloudTrack
 
 PROTOCOLS = ["progressive", "hls"]
 MIMETYPE = "audio/mpeg"

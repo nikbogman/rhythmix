@@ -1,13 +1,12 @@
-from service.soundcloud import SoundCloudService
-from service.audio_cache import AudioCache
+from src.service.soundcloud import SoundCloudService
 
 from typing import Annotated
 from fastapi import APIRouter, HTTPException, Depends
-from api.dependencies import get_soundcloud_service, get_audio_cache
+from src.api.dependencies import get_soundcloud_service, get_audio_cache
 
 from celery import chain
 
-from task_queue import download_audio_task, analyze_audio_task
+from src.task_queue import download_audio_task, analyze_audio_task
 
 router = APIRouter(prefix="/soundcloud")
 

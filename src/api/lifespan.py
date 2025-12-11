@@ -1,11 +1,12 @@
-from service.soundcloud import SoundCloudService
+import ssl
+from src.service.soundcloud import SoundCloudService
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
-from config import get_settings
-from service.soundcloud.client_id_auth import SoundCloudClientIdAuth
-from service.soundcloud.client_id_provider import SoundCloudClientIdProvider
-from service.soundcloud.api import SoundCloudAPI
-from service.audio_cache import AudioCache
+from src.config import get_settings
+from src.service.soundcloud.client_id_auth import SoundCloudClientIdAuth
+from src.service.soundcloud.client_id_provider import SoundCloudClientIdProvider
+from src.service.soundcloud.api import SoundCloudAPI
+from src.service.audio_cache import AudioCache
 from redis import asyncio as aioredis
 
 from contextlib import AsyncExitStack
@@ -16,8 +17,8 @@ import httpx
 async def lifespan(api: FastAPI):
     async with AsyncExitStack() as stack:
         settings = get_settings()
-        redis_client = aioredis.Redis(
-            host=settings.redis_host, port=settings.redis_port, db=settings.redis_db
+        redis_client = aioredis.from_url(
+            url=settings.redis_url, ssl_cert_reqs=ssl.CERT_NONE
         )
         # ping redis
         await stack.enter_async_context(redis_client)

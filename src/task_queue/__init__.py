@@ -1,17 +1,22 @@
 import asyncio
+import ssl
 from celery import Celery, signals
 from redis import asyncio as aioredis
 
-from config import get_settings
+from src.config import get_settings
 
-from service.audio_cache import AudioCache
-from service.audio_analysis import analyse_audio
-from service.audio_download import download_audio_async
+from src.service.audio_cache import AudioCache
+from src.service.audio_analysis import analyse_audio
+from src.service.audio_download import download_audio
+
+settings = get_settings()
 
 celery_app = Celery(
     "task_queue",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0",
+    broker=settings.redis_url,
+    backend=settings.redis_url,
+    broker_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},  # or CERT_REQUIRED
+    redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_NONE},
 )
 
 redis_client: aioredis.Redis
@@ -22,9 +27,10 @@ audio_cache: AudioCache
 def init_celery_worker(**kwargs):
     global redis_client, audio_cache
     settings = get_settings()
-    redis_client = aioredis.Redis(
-        host=settings.redis_host, port=settings.redis_port, db=settings.redis_db
+    redis_client = aioredis.from_url(
+        url=settings.redis_url, ssl_cert_reqs=ssl.CERT_NONE
     )
+
     audio_cache = AudioCache(redis_client)
 
 
@@ -32,24 +38,20 @@ def init_celery_worker(**kwargs):
 def shutdown_celery_worker(**kwargs):
     global redis_client
     if redis_client:
-        redis_client.close()
+        asyncio.run(redis_client.close())
 
 
 @celery_app.task
-async def download_audio_task(url: str) -> str:
-    audio = await download_audio_async(url)
-    cache_key = await audio_cache.store(audio)
+def download_audio_task(url: str) -> str:
+    audio = download_audio(url)
+    cache_key = asyncio.run(audio_cache.store(audio))
     return cache_key
 
 
 @celery_app.task
-async def remove_cache(cache_key: str): ...
-
-
-@celery_app.task
-async def analyze_audio_task(cache_key: str):
-    audio = await audio_cache.retreive(cache_key)
+def analyze_audio_task(cache_key: str):
+    audio = asyncio.run(audio_cache.retreive(cache_key))
     if audio is None:
         raise ValueError("Audio data not found in cache")
 
-    return await asyncio.to_thread(analyse_audio, audio)
+    return analyse_audio(audio)

@@ -45,7 +45,7 @@ def key_to_camelot(key: str, scale: Literal["minor", "major"]) -> str:
 
 def analyse_audio(audio_bytes: bytes):
     audio = np.frombuffer(audio_bytes, dtype=np.float32)
-    key, scale = es.KeyExtractor()(audio)
+    key, scale, _ = es.KeyExtractor()(audio)
     bpm, _, _, _, _ = es.RhythmExtractor2013(method="multifeature")(audio)
 
     return dict(bpm=bpm, key=key, camelot_key=key_to_camelot(key, scale), scale=scale)

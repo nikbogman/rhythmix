@@ -2,12 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 
-from api.dependencies import get_audio_cache
-from service.audio_cache import AudioCache
+from src.api.dependencies import get_audio_cache
+from src.config import get_settings
+from src.service.audio_cache import AudioCache
 
 from celery import chain
 from celery.result import AsyncResult
-from task_queue import analyze_audio_task
+from src.task_queue import analyze_audio_task, celery_app
 
 router = APIRouter(prefix="/audio")
 
@@ -36,12 +37,19 @@ async def upload_audio(
 
 @router.get("/{task_id}")
 async def get_audio(task_id: str):
-    result = AsyncResult(
-        task_id,
-    )
+    settings = get_settings()
+    result = AsyncResult(id=task_id, app=celery_app)
+
     if result.state == "PENDING":
         return {"status": "pending"}
     elif result.state == "FAILURE":
         return {"status": "failure", "error": str(result.info)}
+    elif result.ready():  # SUCCESS or RETRY
+        try:
+            # Use .get() with timeout=0 to avoid blocking if result already available
+            data = result.get(timeout=0)
+            return {"status": "success", "data": data}
+        except Exception as e:
+            return {"status": "failure", "error": str(e)}
     else:
-        return {"status": "success", "data": result.result}
+        return {"status": result.state}
