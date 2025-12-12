@@ -1,6 +1,7 @@
-import numpy as np
-import essentia.standard as es
 from typing import Literal
+
+import essentia.standard as es
+import numpy as np
 
 _base_camelot_map = {
     ("C", "major"): "8B",

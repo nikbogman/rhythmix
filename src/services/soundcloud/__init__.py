@@ -1,14 +1,15 @@
-from src.service.soundcloud.api import SoundCloudAPI
-from src.service.soundcloud.track import SoundCloudTrack
-
-PROTOCOLS = ["progressive", "hls"]
-MIMETYPE = "audio/mpeg"
+from src.config import SOUNDCLOUD_MIMETYPE, SOUNDCLOUD_PROTOCOLS
+from src.services.soundcloud.api import SoundCloudAPI
+from src.services.soundcloud.track import SoundCloudTrack
 
 
 def _select_transcoding(transcodings: list) -> str | None:
     for t in transcodings:
         fmt = t.get("format", {})
-        if fmt.get("protocol") in PROTOCOLS and fmt.get("mime_type") == MIMETYPE:
+        if (
+            fmt.get("protocol") in SOUNDCLOUD_PROTOCOLS
+            and fmt.get("mime_type") == SOUNDCLOUD_MIMETYPE
+        ):
             return t.get("url")
     return None
 
@@ -17,10 +18,8 @@ class SoundCloudService:
     def __init__(self, api: SoundCloudAPI):
         self.api = api
 
-    async def get_track(self, track_artist: str, track_name: str):
-        track = await self.api.resolve_track(
-            f"https://soundcloud.com/{track_artist}/{track_name}"
-        )
+    async def get_track(self, url: str):
+        track = await self.api.resolve_track(url)
 
         stream_url = _select_transcoding(track["media"]["transcodings"])
         if not stream_url:
@@ -43,7 +42,7 @@ class SoundCloudService:
             artwork_url=track.get("artwork_url"),
             genre=track.get("genre"),
             waveform_url=track.get("waveform_url"),
-            artist=track_artist,
+            # artist=track_artist,
             artist_display=artist_display,
             download_url=download_url,
             stream_url=stream_url,

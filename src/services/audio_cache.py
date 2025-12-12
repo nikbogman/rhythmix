@@ -1,5 +1,8 @@
 import uuid
+
 import redis.asyncio as aioredis
+
+from src.config import AUDIO_CACHE_TTL
 
 
 class AudioCache:
@@ -9,9 +12,10 @@ class AudioCache:
     def _generate_key(self) -> str:
         return str(uuid.uuid4())
 
+    # TODO: add ttl
     async def store(self, data: bytes) -> str:
         key = self._generate_key()
-        await self.redis_client.set(key, data)
+        await self.redis_client.set(key, data, ex=AUDIO_CACHE_TTL)
         return key
 
     async def retreive(self, key: str) -> bytes | None:

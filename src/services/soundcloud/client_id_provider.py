@@ -1,13 +1,14 @@
 import asyncio
 import re
+from typing import Optional
+
 import httpx
 
-WEB_URL = "https://soundcloud.com/"
-MOBILE_URL = "https://m.soundcloud.com/"
+from src.config import SOUNDCLOUD_MOBILE_URL, SOUNDCLOUD_WEB_URL
 
 
 class SoundCloudClientIdProvider:
-    _client_id: str | None
+    _client_id: Optional[str]
 
     def __init__(self, http_client: httpx.AsyncClient):
         self.http_client = http_client
@@ -43,7 +44,7 @@ class SoundCloudClientIdProvider:
                 )
 
     async def _fetch_client_id_web(self) -> str:
-        response = await self.http_client.get(url=WEB_URL)
+        response = await self.http_client.get(url=SOUNDCLOUD_WEB_URL)
         text = response.text
         if not text or not isinstance(text, str):
             raise ValueError("Could not find client ID")
@@ -69,7 +70,9 @@ class SoundCloudClientIdProvider:
                 "Mobile/15E148 Safari/604.1"
             )
         }
-        response = await self.http_client.get(url=MOBILE_URL, headers=headers)
+        response = await self.http_client.get(
+            url=SOUNDCLOUD_MOBILE_URL, headers=headers
+        )
         text = response.text
         match = re.search(r'"clientId":"(\w+?)"', text)
         if match:

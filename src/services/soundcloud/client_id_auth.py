@@ -1,5 +1,5 @@
 import httpx
-from src.service.soundcloud.client_id_provider import SoundCloudClientIdProvider
+from src.services.soundcloud.client_id_provider import SoundCloudClientIdProvider
 
 
 class SoundCloudClientIdAuth(httpx.Auth):
