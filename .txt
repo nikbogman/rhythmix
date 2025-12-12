@@ -1,0 +1,8 @@
+pydantic-settings
+essentia
+celery
+redis-py
+httpx
+fastapi
+
+uv add httpx redis-py pydantic-settings essentia fastapi[standard] celery
