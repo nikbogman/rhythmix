@@ -1,35 +1,39 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from celery import chain
 from celery.result import AsyncResult
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.dependencies import (
-    APIDependencies,
-    get_audio_cache,
+    DependancyContainer,
     get_soundcloud_service,
+    get_audio_storage,
 )
 from src.config import MAX_FILE_SIZE, get_settings
-from src.services.audio_cache import AudioCache
 from src.services.audio_source import AudioSource, detect_audio_source
+from src.services.audio_storage import AudioStorage
 from src.services.soundcloud import SoundCloudService
-from src.task_queue import analyze_audio_task, celery_app, download_audio_task
+from src.task_queue import celery_app, extract_audio_features
+
+
+# def verify_api_key(x_api_key: str = Header(...)):
+#     if x_api_key != API_KEY:
+#         raise HTTPException(status_code=403, detail="Forbidden")
 
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
     settings = get_settings()
-    deps = APIDependencies()
+    deps = DependancyContainer()
 
-    try:
-        await deps.setup(settings)
-        api.state.deps = deps
-        yield
-    finally:
-        await deps.cleanup()
+    await deps.setup(settings)
+    api.state.deps = deps
+
+    yield
+
+    await deps.cleanup()
 
 
 api = FastAPI(lifespan=lifespan)
@@ -43,7 +47,7 @@ async def get_root():
 
 @api.post("/upload")
 async def create_task_from_upload(
-    audio_cache: Annotated[AudioCache, Depends(get_audio_cache)],
+    audio_storage: Annotated[AudioStorage, Depends(get_audio_storage)],
     file: UploadFile = File(...),
 ):
     contents = await file.read()
@@ -53,16 +57,22 @@ async def create_task_from_upload(
             detail=f"File too large. Max size is {MAX_FILE_SIZE / 1024 / 1024} MB",
         )
 
-    cache_key = await audio_cache.store(data=contents)
-    task = analyze_audio_task.delay(cache_key)
+    audio_id = audio_storage.upload(
+        filename=file.filename or "upload",
+        content_type=file.content_type,
+        content=contents,
+    )
 
+    preview_url = audio_storage.generate_preview_url(audio_id)
+
+    task = extract_audio_features.delay(url=preview_url)
     return dict(task_id=task.id)
 
 
 @api.post("/url")
 async def create_task_from_url(
-    url: str,
     soundcloud_service: Annotated[SoundCloudService, Depends(get_soundcloud_service)],
+    url: str,
 ):
     source = detect_audio_source(url)
     if source is AudioSource.UNKNOWN:
@@ -78,8 +88,10 @@ async def create_task_from_url(
 
         download_url = track.download_url
 
-    task = chain(download_audio_task.s(download_url), analyze_audio_task.s()).delay()
+    else:
+        download_url = url
 
+    task = extract_audio_features.delay(url=download_url)
     return dict(task_id=task.id)
 
 
