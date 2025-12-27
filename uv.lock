@@ -6,6 +6,13 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[manifest]
+members = [
+    "api",
+    "rhythmix",
+    "worker",
+]
+
 [[package]]
 name = "amqp"
 version = "5.3.1"
@@ -48,6 +55,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/16/ce/8a777047513153587e5434fd752e89334ac33e379aa3497db860eeb60377/anyio-4.12.0.tar.gz", hash = "sha256:73c693b567b0c55130c104d0b43a9baf3aa6a31fc6110116509f27bf75e21ec0", size = 228266, upload-time = "2025-11-28T23:37:38.911Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/9c/36c5c37947ebfb8c7f22e0eb6e4d188ee2d53aa3880f3f2744fb894f0cb1/anyio-4.12.0-py3-none-any.whl", hash = "sha256:dad2376a628f98eeca4881fc56cd06affd18f659b17a747d3ff0307ced94b1bb", size = 113362, upload-time = "2025-11-28T23:36:57.897Z" },
+]
+
+[[package]]
+name = "api"
+version = "0.1.0"
+source = { virtual = "api" }
+dependencies = [
+    { name = "boto3" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "httpx" },
+    { name = "mypy-boto3" },
+    { name = "pydantic-settings" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.16" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.124.4" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "mypy-boto3", specifier = ">=1.42.3" },
+    { name = "pydantic-settings", specifier = ">=2.12.0" },
 ]
 
 [[package]]
@@ -679,6 +707,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "mypy-boto3"
+version = "1.42.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boto3" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ea/42/77c5c812edf4e92dcce1d4ee9c055eccb70392faef05145c2fad1970cb60/mypy_boto3-1.42.3.tar.gz", hash = "sha256:19d6fda488de5077ab6f4d7a482a814329557edc7c6e6eac917c69e00371710d", size = 22310, upload-time = "2025-12-04T21:18:49.087Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/75/dba6de4cb277be8ba84c637502890d9071806f3d55801b67f55e348a3cd6/mypy_boto3-1.42.3-py3-none-any.whl", hash = "sha256:783cee49a25f383aa9009660882b355ebc656ea65c626daebf63bf83265cefea", size = 22445, upload-time = "2025-12-04T21:18:47.776Z" },
 ]
 
 [[package]]
@@ -1725,4 +1766,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2b/fb/c492d6daa5ec067c2988ac80c61359ace5c4c674c532985ac5a123436cec/websockets-15.0.1-pp310-pypy310_pp73-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b359ed09954d7c18bbc1680f380c7301f92c60bf924171629c5db97febb12f04", size = 174155, upload-time = "2025-03-05T20:03:25.321Z" },
     { url = "https://files.pythonhosted.org/packages/68/a1/dcb68430b1d00b698ae7a7e0194433bce4f07ded185f0ee5fb21e2a2e91e/websockets-15.0.1-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:cad21560da69f4ce7658ca2cb83138fb4cf695a2ba3e475e0559e05991aa8122", size = 176884, upload-time = "2025-03-05T20:03:27.934Z" },
     { url = "https://files.pythonhosted.org/packages/fa/a8/5b41e0da817d64113292ab1f8247140aac61cbf6cfd085d6a0fa77f4984f/websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f", size = 169743, upload-time = "2025-03-05T20:03:39.41Z" },
+]
+
+[[package]]
+name = "worker"
+version = "0.1.0"
+source = { virtual = "worker" }
+dependencies = [
+    { name = "essentia" },
+    { name = "ffmpeg-python" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "essentia", specifier = ">=2.1b6.dev1389" },
+    { name = "ffmpeg-python", specifier = ">=0.2.0" },
 ]

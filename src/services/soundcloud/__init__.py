@@ -1,5 +1,5 @@
 from src.config import SOUNDCLOUD_MIMETYPE, SOUNDCLOUD_PROTOCOLS
-from src.services.soundcloud.api import SoundCloudAPI
+from api.app.services.soundcloud.api import SoundCloudAPI
 
 from dataclasses import dataclass
 
