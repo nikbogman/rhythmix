@@ -1,31 +1,39 @@
-import ssl
 from functools import cache
+from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-MAX_FILE_SIZE = 1024 * 1024 * 5  # 5mb
-DEFAULT_DOWNLOAD_DURATION = 30  # 30s
-AUDIO_CACHE_TTL = 300  # 5min
-
-SOUNDCLOUD_WEB_URL = "https://soundcloud.com/"
-SOUNDCLOUD_MOBILE_URL = "https://m.soundcloud.com/"
-SOUNDCLOUD_API_URL = "https://api-v2.soundcloud.com"
-
-SOUNDCLOUD_PROTOCOLS = ["progressive", "hls"]
-SOUNDCLOUD_MIMETYPE = "audio/mpeg"
-
-REDIS_SSL = ssl.CERT_NONE
-
-DELETE_BATCH_SIZE = 5
 
 
 class Settings(BaseSettings):
+    env: Literal["dev", "prod"] = "dev"
+    storage_base_path: str = "audio"
     redis_url: str
-    api_key: str
 
-    model_config = SettingsConfigDict(env_file=".env")
+    s3_bucket_name: str | None = None
+    s3_region_name: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
 
+    model_config = SettingsConfigDict(
+        env_prefix="",
+        env_file=".env",
+        extra="forbid",
+    )
+
+    @model_validator(mode="after")
+    def validate_prod_requirements(self):
+        if self.env == "prod":
+            required = [
+                self.s3_bucket_name,
+                self.s3_region_name,
+                self.s3_access_key_id,
+                self.s3_secret_access_key,
+            ]
+            if not all(required):
+                raise ValueError("Missing required S3 configuration for production")
+        return self
 
 @cache
-def get_settings():
+def get_settings() -> Settings:
     return Settings()

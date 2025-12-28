@@ -1,60 +1,34 @@
-from contextlib import AsyncExitStack
-from typing import Optional
+from contextlib import asynccontextmanager
+from typing import Annotated
 
-from fastapi import Request
+from fastapi import Depends, FastAPI, Request
 import httpx
 
-from src.config import Settings
-from src.services.soundcloud import SoundCloudService
-from api.app.services.soundcloud.api import SoundCloudAPI
-from src.services.soundcloud.client_id_auth import SoundCloudClientIdAuth
-from src.services.soundcloud.client_id_provider import SoundCloudClientIdProvider
-import boto3
-from mypy_boto3_s3.service_resource import Bucket
-from src.services.audio_storage import AudioStorage
+from src.dependencies import get_storage
+from src.services.file.resolver import FileResolver
+from src.services.soundcloud.client import SoundCloudClient
+from src.services.soundcloud.resolver import SoundCloudResolver
+from src.services.storage import Storage
 
 
-class DependancyContainer:
-    _exit_stack: AsyncExitStack
-
-    soundcloud_service: Optional[SoundCloudService] = None
-
-    _provider_http_client: Optional[httpx.AsyncClient] = None
-    _soundcloud_http_client: Optional[httpx.AsyncClient] = None
-
-    def __init__(self):
-        self._exit_stack = AsyncExitStack()
-
-    async def _init_provider_http_client(self, retries: int = 3) -> httpx.AsyncClient:
-        return await self._exit_stack.enter_async_context(
-            httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=retries))
-        )
-
-    async def _init_resolver_http_client(self, auth: httpx.Auth) -> httpx.AsyncClient:
-        return await self._exit_stack.enter_async_context(
-            client=httpx.AsyncClient(auth=auth)
-        )
-
-    async def setup(self, settings: Settings):
-        await self._exit_stack.__aenter__()
-
-        self._provider_http_client = await self._init_provider_http_client()
-        provider = SoundCloudClientIdProvider(self._provider_http_client)
-        auth = SoundCloudClientIdAuth(provider)
-
-        self._soundcloud_http_client = await self._init_soundcloud_http_client(auth)
-        self.soundcloud_service = SoundCloudService(self.soundcloud_api)
-
-    async def cleanup(self):
-        await self._exit_stack.aclose()
+@asynccontextmanager
+def lifespan(api: FastAPI):
+    with httpx.Client() as http_client:
+        api.state.http_client = http_client
+        yield
 
 
-def get_audio_storage(request: Request) -> AudioStorage:
-    return request.app.state.deps.audio_storage
+def get_http_client(request: Request) -> httpx.Client:
+    return request.app.state.http_client
 
 
-def get_soundcloud_service(request: Request) -> SoundCloudService:
-    return request.app.state.deps.soundcloud_service
+def get_soundcloud_resolver(
+    http_client: Annotated[httpx.Client, Depends(get_http_client)],
+):
+    client = SoundCloudClient(http_client)
+    resolver = SoundCloudResolver(client)
+    return resolver
 
 
-
+def get_file_resolver(storage: Annotated[Storage, Depends(get_storage)]):
+    return FileResolver(storage)
